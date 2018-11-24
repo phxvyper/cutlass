@@ -33,7 +33,12 @@ enum ButtonFlags {
     CUT_JUMP = 1 << 5,
     CUT_DUCK = 1 << 6,
     CUT_ATTACK = 1 << 7,
-    CUT_ATTACK_ALT = 1 << 8
+    CUT_ATTACK_ALT = 1 << 8,
+
+    CUT_LOOK_UP = 1 << 9,
+    CUT_LOOK_LEFT = 1 << 10,
+    CUT_LOOK_RIGHT = 1 << 11,
+    CUT_LOOK_DOWN = 1 << 12
 };
 
 /*
