@@ -7,37 +7,41 @@ int height = 576;
 const char gameTitle[8] = "Cutlass";
 constexpr float fixedTimestep(1 / 60.0f);
 std::map<int, ButtonFlags> buttonMap = {
-        {GLFW_KEY_ESCAPE,         CUT_ESC},
-        {GLFW_KEY_SPACE,          CUT_JUMP},
-        {GLFW_KEY_W,              CUT_MOVE_FORWARD},
-        {GLFW_KEY_A,              CUT_MOVE_LEFT},
-        {GLFW_KEY_S,              CUT_MOVE_BACK},
-        {GLFW_KEY_D,              CUT_MOVE_RIGHT},
-        {GLFW_KEY_LEFT_CONTROL,   CUT_DUCK},
-        {GLFW_MOUSE_BUTTON_LEFT,  CUT_ATTACK},
-        {GLFW_MOUSE_BUTTON_RIGHT, CUT_ATTACK_ALT},
+        {GLFW_KEY_ESCAPE,           CUT_ESC},
+        {GLFW_KEY_SPACE,            CUT_JUMP},
+        {GLFW_KEY_W,                CUT_MOVE_FORWARD},
+        {GLFW_KEY_A,                CUT_MOVE_LEFT},
+        {GLFW_KEY_S,                CUT_MOVE_BACK},
+        {GLFW_KEY_D,                CUT_MOVE_RIGHT},
+        {GLFW_KEY_LEFT_CONTROL,     CUT_DUCK},
+        {GLFW_MOUSE_BUTTON_LEFT,    CUT_ATTACK},
+        {GLFW_MOUSE_BUTTON_RIGHT,   CUT_ATTACK_ALT},
+        {GLFW_KEY_UP,               CUT_LOOK_UP},
+        {GLFW_KEY_LEFT,             CUT_LOOK_LEFT},
+        {GLFW_KEY_RIGHT,            CUT_LOOK_RIGHT},
+        {GLFW_KEY_DOWN,             CUT_LOOK_DOWN},
 };
 
 GLFWwindow *window;
 GameState currentState;
 GameState previousState;
 glm::vec2 deltaScroll;
-glm::vec2 deltaMousePos;
-glm::vec2 mousePos;
 bool mouseSet = false;
+bool mouseLocked = false;
+bool mouseLockReady = false;
 
 void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     std::cout << "key: " << key << std::endl;
 }
 
 void MouseCallback(GLFWwindow *window, double xpos, double ypos) {
-    if (!mouseSet) {
+    /*if (!mouseSet) {
         mousePos = glm::vec2((float) xpos, (float) ypos);
         mouseSet = true;
     }
 
     deltaMousePos = glm::vec2(xpos - mousePos.x, ypos - mousePos.y);
-    mousePos = glm::vec2((float) xpos, (float) ypos);
+    mousePos = glm::vec2((float) xpos, (float) ypos);*/
 }
 
 void ScrollCallback(GLFWwindow *window, double xpos, double ypos) {
@@ -51,10 +55,24 @@ void FramebufferSizeCallback(GLFWwindow *window, int width, int height) {
 }
 
 void UpdateInput() {
-    currentState.mousePos = mousePos;
-    currentState.deltaMousePos = deltaMousePos;
+    /*
+     * mouse update
+     */
+    double mouseX, mouseY;
+    glfwGetCursorPos(window, &mouseX, &mouseY);
+
+    if (!mouseSet) {
+        currentState.mousePos = glm::vec2((float) mouseX, (float) mouseY);
+        mouseSet = true;
+    }
+
+    currentState.deltaMousePos = glm::vec2(mouseX - currentState.mousePos.x, mouseY - currentState.mousePos.y);
+    currentState.mousePos = glm::vec2((float) mouseX, (float) mouseY);
     currentState.deltaScroll = deltaScroll;
 
+    /*
+     * keyboad update
+     */
     // start with no buttons pressed/cleared flags
     ButtonFlags buttonFlags = CUT_BUTTON_NONE;
     for (auto const&[key, val] : buttonMap) {
@@ -69,10 +87,20 @@ void UpdateInput() {
 
 void Update(float time, float deltaTime) {
     if (currentState.buttonFlags & CUT_ESC) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        if (mouseLockReady) {
+            if (mouseLocked) {
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                mouseLocked = false;
+            }
+            else {
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                mouseLocked = true;
+            }
+            mouseLockReady = false;
+        }
     }
-    else if (currentState.buttonFlags & CUT_ATTACK) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    else {
+        mouseLockReady = true;
     }
 
     currentState.player.FixedUpdate(currentState, time, deltaTime);
@@ -237,6 +265,8 @@ int main() {
 
             float alpha = accumulator / fixedTimestep;
             GameState renderState = InterpolateState(currentState, previousState, alpha);
+
+            currentState.deltaMousePos = glm::vec2(0.0f, 0.0f);
 
             Render(renderState);
         }
