@@ -77,6 +77,37 @@ Player::Player() {
 void Player::FixedUpdate(GameState &state, float time, float deltaTime) {
 
     /*
+     * looking with arrow keys
+     */
+    auto lookDir = glm::vec3(0.0f, 0.0f, 0.0f);
+    if (state.buttonFlags & CUT_LOOK_RIGHT) {
+        lookDir.x += 1.0f;
+    }
+    if (state.buttonFlags & CUT_LOOK_LEFT) {
+        lookDir.x -= 1.0f;
+    }
+    if (state.buttonFlags & CUT_LOOK_UP) {
+        lookDir.y += 1.0f;
+    }
+    if (state.buttonFlags & CUT_LOOK_DOWN) {
+        lookDir.y -= 1.0f;
+    }
+
+    this->rotation += lookDir.x * 3.0f;
+    this->camera.rotation.x -= lookDir.y * 3.0f;
+
+    /*
+     * looking with mouse
+     */
+    this->rotation += state.deltaMousePos.x * 0.022f * 3.0f;
+    this->camera.rotation.x += state.deltaMousePos.y * 0.022f * 3.0f;
+
+    /*
+     * clamp vertical look
+     */
+    this->camera.rotation.x = glm::clamp(this->camera.rotation.x, -89.9f, 89.9f);
+
+    /*
      * null-canceling style movement (opposing movements cancel each other out)
      */
     auto wishDir = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -94,12 +125,25 @@ void Player::FixedUpdate(GameState &state, float time, float deltaTime) {
     }
 
     /*
+     * wishdir should be relative to the player's rotation
+     * i.e forward should be towards the direction the player is facing
+     */
+    auto rotationRadians = glm::radians(this->rotation);
+
+
+    wishDir = glm::vec3(
+            wishDir.x * glm::cos(rotationRadians) + wishDir.z * glm::sin(rotationRadians),
+            wishDir.y,
+            wishDir.z * glm::cos(rotationRadians) - wishDir.x * glm::sin(rotationRadians)
+            );
+
+    /*
      * keep magnitude uniform
      */
     glm::normalize(wishDir);
 
     /*
-     * move 50 units a second
+     * move 400 units a second
      */
     this->position += wishDir * 400.0f * deltaTime;
 
